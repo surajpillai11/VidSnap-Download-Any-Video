@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VidSnap — Download Any Video</title>
+
+<link rel="icon" type="image/png" href="assets/vidsnap1.png"/>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<nav>
+  <div class="logo">Vid<span>Snap</span></div>
+  <div class="nav-badge">✦ 1000+ Sites</div>
+</nav>
+
+<main>
+  <!-- HERO -->
+  <div class="hero-label">Free · Fast · No limits</div>
+  <h1>Download<br><span class="line2">any video,</span><br>instantly.</h1>
+  <p class="hero-sub">Paste any video link from Instagram, Twitter, educational sites and more. High quality. No watermarks. Yours forever.</p>
+
+  <!-- DOWNLOADER CARD -->
+  <div class="downloader-card">
+    <div class="input-group">
+      <div class="url-wrap">
+        <span class="url-icon">⌁</span>
+        <input type="text" id="url-input" placeholder="Paste video URL here — Instagram, Twitter..." autocomplete="off" spellcheck="false"/>
+      </div>
+    </div>
+
+    <!-- FORMAT TABS -->
+    <div class="format-row">
+      <button class="fmt-btn active" data-fmt="mp4" onclick="setFmt(this)">
+        <span class="fmt-icon">▶</span> MP4 Video
+      </button>
+      <button class="fmt-btn" data-fmt="mp3" onclick="setFmt(this)">
+        <span class="fmt-icon">♫</span> MP3 Audio
+      </button>
+      <button class="fmt-btn" data-fmt="webm" onclick="setFmt(this)">
+        <span class="fmt-icon">◈</span> WebM
+      </button>
+    </div>
+
+    <!-- QUALITY (pill buttons replacing the dropdown) -->
+    <div class="quality-row" id="quality-row">
+      <span class="quality-label">Quality:</span>
+      <div class="quality-options">
+        <button class="quality-pill active" data-quality="best" onclick="setQuality(this)">Best</button>
+        <button class="quality-pill" data-quality="1080p" onclick="setQuality(this)">1080p</button>
+        <button class="quality-pill" data-quality="720p" onclick="setQuality(this)">720p</button>
+        <button class="quality-pill" data-quality="480p" onclick="setQuality(this)">480p</button>
+        <button class="quality-pill" data-quality="360p" onclick="setQuality(this)">360p</button>
+      </div>
+    </div>
+
+    <!-- BUTTON -->
+    <button id="download-btn" onclick="startDownload()">
+      <div class="btn-inner">
+        <span id="btn-icon">↓</span>
+        <span id="btn-text">Download Now</span>
+      </div>
+    </button>
+
+    <!-- STATUS -->
+    <div id="status-area">
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <div class="status-text" id="status-text">Preparing download...</div>
+    </div>
+
+    <!-- VIDEO INFO PREVIEW -->
+    <div id="video-info">
+      <div class="thumb-wrap">
+        <img id="thumb-img" src="" alt="thumbnail"/>
+      </div>
+      <div class="video-meta">
+        <div class="video-title" id="video-title"></div>
+        <div class="video-site">
+          <span class="site-dot"></span>
+          <span id="video-site-name">Detected site</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUPPORTED SITES -->
+  <div class="sites-section">
+    <div class="section-label">Supported platforms</div>
+    <div class="sites-grid">
+      <div class="site-chip"><span class="icon">▶</span> YouTube</div>
+      <div class="site-chip"><span class="icon">📸</span> Instagram</div>
+      <div class="site-chip"><span class="icon">𝕏</span> Twitter / X</div>
+      <div class="site-chip"><span class="icon">▲</span> Reddit</div>
+      <div class="site-chip"><span class="icon">◈</span> Vimeo</div>
+      <div class="site-chip"><span class="icon">♪</span> TikTok</div>
+      <div class="site-chip"><span class="icon">◉</span> Facebook</div>
+      <div class="site-chip"><span class="icon">🎓</span> Apna College</div>
+      <div class="site-chip"><span class="icon">◎</span> Dailymotion</div>
+      <div class="site-chip"><span class="icon">+</span> 1000+ more</div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">⚡</div>
+      <div class="feat-title">Lightning fast</div>
+      <div class="feat-desc">Powered by yt-dlp, the industry standard engine used by developers worldwide.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">◈</div>
+      <div class="feat-title">Any format</div>
+      <div class="feat-desc">MP4, MP3, WebM, and more. Choose quality from 360p to 4K where available.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔒</div>
+      <div class="feat-title">Private & local</div>
+      <div class="feat-desc">Self-hosted on your own server. No third-party tracking, no data sharing.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">◉</div>
+      <div class="feat-title">No watermarks</div>
+      <div class="feat-desc">Clean original files, no branding added. What you see is what you get.</div>
+    </div>
+  </div>
+
+  <!-- SETUP GUIDE
+  <div class="setup-section">
+    <h2>Deploy in minutes</h2>
+    <p>Set up your own instance on Render or Replit with these simple steps.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Clone the backend</div>
+          <div class="step-desc">Upload <code>app.py</code>, <code>requirements.txt</code>, and this <code>index.html</code> to your repo or Replit project.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">Install dependencies</div>
+          <div class="step-desc">Run <code>pip install -r requirements.txt</code> — installs Flask, yt-dlp, flask-cors automatically.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">Set your backend URL</div>
+          <div class="step-desc">Edit <code>API_BASE</code> in <code>script.js</code> (line 2) to point to your Render/Replit backend URL.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-title">Deploy & go live</div>
+          <div class="step-desc">On Render: connect GitHub repo → Web Service → <code>python app.py</code>. On Replit: just click Run.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main> -->
+
+<footer>
+  <p>VidSnap — Built with yt-dlp + Flask. For personal use only. Respect copyright laws.</p>
+</footer>
+
+<div id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
