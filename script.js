@@ -1,5 +1,5 @@
-// ── CONFIG: change this to your deployed backend URL ──
-const API_BASE = 'http://localhost:5000';
+// ── UPDATE THIS TO YOUR RENDER URL ──
+const API_BASE = 'https://vidsnap-api.onrender.com';   // ← Change this!
 
 let selectedFormat = 'mp4';
 let selectedQuality = 'best';
@@ -8,13 +8,7 @@ function setFmt(btn) {
   document.querySelectorAll('.fmt-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   selectedFormat = btn.dataset.fmt;
-
-  const qualityRow = document.getElementById('quality-row');
-  if (selectedFormat === 'mp3') {
-    qualityRow.classList.add('hidden');
-  } else {
-    qualityRow.classList.remove('hidden');
-  }
+  document.getElementById('quality-row').classList.toggle('hidden', selectedFormat === 'mp3');
 }
 
 function setQuality(btn) {
@@ -24,16 +18,16 @@ function setQuality(btn) {
 }
 
 function showToast(msg, type = 'success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'show ' + type;
-  setTimeout(() => t.className = '', 3000);
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast show ${type}`;
+  setTimeout(() => toast.className = 'toast', 4000);
 }
 
 function setStatus(msg, type = '') {
   const el = document.getElementById('status-text');
   el.textContent = msg;
-  el.className = 'status-text ' + type;
+  el.className = `status-text ${type}`;
 }
 
 function setProgress(pct) {
@@ -41,15 +35,15 @@ function setProgress(pct) {
 }
 
 function detectSite(url) {
-  if (url.includes('youtube') || url.includes('youtu.be')) return 'YouTube';
-  if (url.includes('instagram')) return 'Instagram';
-  if (url.includes('twitter') || url.includes('x.com')) return 'Twitter / X';
-  if (url.includes('reddit')) return 'Reddit';
-  if (url.includes('tiktok')) return 'TikTok';
-  if (url.includes('vimeo')) return 'Vimeo';
-  if (url.includes('facebook') || url.includes('fb.watch')) return 'Facebook';
-  if (url.includes('apnacollege')) return 'Apna College';
-  return 'Video site';
+  const host = url.toLowerCase();
+  if (host.includes('youtube') || host.includes('youtu.be')) return 'YouTube';
+  if (host.includes('instagram')) return 'Instagram';
+  if (host.includes('twitter') || host.includes('x.com')) return 'X / Twitter';
+  if (host.includes('tiktok')) return 'TikTok';
+  if (host.includes('reddit')) return 'Reddit';
+  if (host.includes('vimeo')) return 'Vimeo';
+  if (host.includes('facebook')) return 'Facebook';
+  return 'Video Platform';
 }
 
 async function fetchInfo(url) {
@@ -59,31 +53,33 @@ async function fetchInfo(url) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch { return null; }
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
 }
 
 async function startDownload() {
   const url = document.getElementById('url-input').value.trim();
-  if (!url) { showToast('Please paste a video URL first', 'error'); return; }
-  if (!url.startsWith('http')) { showToast('Please enter a valid URL starting with http', 'error'); return; }
+  if (!url || !url.startsWith('http')) {
+    showToast('Please enter a valid video URL', 'error');
+    return;
+  }
 
   const btn = document.getElementById('download-btn');
+  btn.disabled = true;
+  document.getElementById('btn-icon').innerHTML = '⟳';
+  document.getElementById('btn-text').textContent = 'Processing...';
+
   const statusArea = document.getElementById('status-area');
   const videoInfo = document.getElementById('video-info');
-
-  btn.disabled = true;
-  document.getElementById('btn-icon').innerHTML = '<span class="spinner"></span>';
-  document.getElementById('btn-text').textContent = 'Processing...';
   statusArea.style.display = 'block';
   videoInfo.classList.remove('show');
   setProgress(10);
-  setStatus('Fetching video information...');
+  setStatus('Fetching video info...');
 
-  // Fetch video info first
   const info = await fetchInfo(url);
-  if (info && info.title) {
+  if (info?.title) {
     document.getElementById('video-title').textContent = info.title;
     document.getElementById('video-site-name').textContent = detectSite(url);
     if (info.thumbnail) {
@@ -92,8 +88,8 @@ async function startDownload() {
     }
   }
 
-  setProgress(30);
-  setStatus('Downloading video...');
+  setProgress(40);
+  setStatus('Downloading...');
 
   try {
     const res = await fetch(`${API_BASE}/download`, {
@@ -103,28 +99,29 @@ async function startDownload() {
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Server error' }));
+      const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'Download failed');
     }
 
-    setProgress(80);
-    setStatus('Preparing your file...');
+    setProgress(75);
+    setStatus('Finalizing file...');
 
     const blob = await res.blob();
-    setProgress(100);
+    const ext = selectedFormat;
+    let filename = (info?.title || 'video')
+      .replace(/[^a-z0-9\s-]/gi, '_')
+      .replace(/\s+/g, '_')
+      .slice(0, 60);
 
-    // Trigger browser download
-    const ext = selectedFormat === 'mp3' ? 'mp3' : selectedFormat === 'webm' ? 'webm' : 'mp4';
-    const filename = (info?.title || 'video').replace(/[^a-z0-9]/gi, '_') + '.' + ext;
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
+    link.download = `${filename}.${ext}`;
     link.click();
-    link.remove();
+    URL.revokeObjectURL(link.href);
 
-    setStatus('✓ Download complete!', 'success');
-    showToast('Downloaded successfully!', 'success');
+    setProgress(100);
+    setStatus('✓ Download started!', 'success');
+    showToast('Download started successfully!', 'success');
 
   } catch (e) {
     setStatus('✗ ' + e.message, 'error');
@@ -136,18 +133,16 @@ async function startDownload() {
   }
 }
 
-// Allow pressing Enter to download
+// Keyboard & Clipboard support
 document.getElementById('url-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') startDownload();
 });
 
-// Auto-paste on focus if clipboard has a URL
 document.getElementById('url-input').addEventListener('focus', async () => {
-  if (document.getElementById('url-input').value) return;
+  const input = document.getElementById('url-input');
+  if (input.value) return;
   try {
     const text = await navigator.clipboard.readText();
-    if (text.startsWith('http')) {
-      document.getElementById('url-input').value = text;
-    }
+    if (text.startsWith('http')) input.value = text.trim();
   } catch {}
 });
