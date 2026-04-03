@@ -1,5 +1,5 @@
-// ── UPDATE THIS TO YOUR RENDER URL ──
-const API_BASE = 'https://vidsnap-download-any-video.onrender.com';   // ← Change this!
+// ── CONFIG ──
+const API_BASE = '/api';   // Important: Do not change this
 
 let selectedFormat = 'mp4';
 let selectedQuality = 'best';
@@ -73,6 +73,7 @@ async function startDownload() {
 
   const statusArea = document.getElementById('status-area');
   const videoInfo = document.getElementById('video-info');
+  
   statusArea.style.display = 'block';
   videoInfo.classList.remove('show');
   setProgress(10);
@@ -95,7 +96,11 @@ async function startDownload() {
     const res = await fetch(`${API_BASE}/download`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, format: selectedFormat, quality: selectedQuality })
+      body: JSON.stringify({ 
+        url, 
+        format: selectedFormat, 
+        quality: selectedQuality 
+      })
     });
 
     if (!res.ok) {
@@ -124,6 +129,7 @@ async function startDownload() {
     showToast('Download started successfully!', 'success');
 
   } catch (e) {
+    console.error(e);
     setStatus('✗ ' + e.message, 'error');
     showToast(e.message, 'error');
   } finally {

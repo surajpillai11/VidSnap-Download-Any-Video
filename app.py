@@ -1,5 +1,5 @@
 """
-VidSnap Backend — Production Ready v2.1
+VidSnap — Full Stack App (Backend + Frontend)
 Optimized for Render.com
 """
 
@@ -10,36 +10,38 @@ import time
 import shutil
 from pathlib import Path
 
-from flask import Flask, request, jsonify, send_file, after_this_request
+from flask import Flask, request, jsonify, send_file, after_this_request, send_from_directory
 from flask_cors import CORS
 import yt_dlp
 
 # ========================= APP SETUP =========================
-app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+app = Flask(__name__, 
+            static_folder="static", 
+            static_url_path="")
+
+CORS(app, origins="*")
 
 DOWNLOAD_DIR = Path("downloads")
 DOWNLOAD_DIR.mkdir(exist_ok=True)
 
-# FFmpeg check (important for Render)
 FFMPEG_PATH = shutil.which('ffmpeg')
 
-# Auto cleanup thread
+# Auto Cleanup Thread
 def cleanup_old_files():
     while True:
-        time.sleep(300)  # every 5 minutes
+        time.sleep(300)
         now = time.time()
-        for file in DOWNLOAD_DIR.iterdir():
-            if file.is_file() and now - file.stat().st_mtime > 600:  # older than 10 minutes
+        for f in DOWNLOAD_DIR.iterdir():
+            if f.is_file() and now - f.stat().st_mtime > 600:
                 try:
-                    file.unlink(missing_ok=True)
+                    f.unlink(missing_ok=True)
                 except:
                     pass
 
 threading.Thread(target=cleanup_old_files, daemon=True).start()
 
 
-# ========================= FORMAT & OPTIONS =========================
+# ========================= FORMAT BUILDER =========================
 QUALITY_MAP = {
     "best": "",
     "1080p": "[height<=1080]",
@@ -54,7 +56,6 @@ def build_format_string(fmt: str, quality: str) -> str:
     if fmt == "mp3":
         return "bestaudio/best"
 
-    # Prioritize MP4, then WebM, then best available
     return (
         f"bestvideo[ext=mp4]{q}+bestaudio[ext=m4a]/"
         f"bestvideo[ext=webm]{q}+bestaudio[ext=webm]/"
@@ -76,7 +77,6 @@ def make_ydl_opts(output_path: str, fmt: str, quality: str) -> dict:
         "socket_timeout": 60,
         "retries": 5,
         "fragment_retries": 5,
-        "continuedl": True,
     }
 
     if FFMPEG_PATH:
@@ -93,16 +93,20 @@ def make_ydl_opts(output_path: str, fmt: str, quality: str) -> dict:
 
 
 # ========================= ROUTES =========================
+
 @app.route("/")
-def index():
-    return jsonify({
-        "status": "VidSnap API is running",
-        "version": "2.1",
-        "ffmpeg_available": bool(FFMPEG_PATH)
-    })
+def serve_frontend():
+    """Serve the main frontend"""
+    return send_from_directory("static", "index.html")
 
 
-@app.route("/info", methods=["POST"])
+@app.route("/<path:path>")
+def serve_static(path):
+    """Serve CSS, JS, images, etc."""
+    return send_from_directory("static", path)
+
+
+@app.route("/api/info", methods=["POST"])
 def get_info():
     data = request.get_json(silent=True) or {}
     url = data.get("url", "").strip()
@@ -126,13 +130,11 @@ def get_info():
             "webpage_url": info.get("webpage_url", url),
         })
 
-    except yt_dlp.utils.DownloadError as e:
-        return jsonify({"error": str(e)}), 422
     except Exception as e:
-        return jsonify({"error": "Failed to fetch video information"}), 500
+        return jsonify({"error": str(e)}), 422
 
 
-@app.route("/download", methods=["POST"])
+@app.route("/api/download", methods=["POST"])
 def download_video():
     data = request.get_json(silent=True) or {}
     url = data.get("url", "").strip()
@@ -142,7 +144,7 @@ def download_video():
     if not url:
         return jsonify({"error": "URL is required"}), 400
     if fmt not in ("mp4", "mp3", "webm"):
-        return jsonify({"error": "Invalid format. Use mp4, mp3 or webm"}), 400
+        return jsonify({"error": "Invalid format"}), 400
 
     uid = uuid.uuid4().hex[:12]
     output_template = str(DOWNLOAD_DIR / f"{uid}_%(title)s.%(ext)s")
@@ -154,22 +156,19 @@ def download_video():
             info = ydl.extract_info(url, download=True)
             downloaded_path = ydl.prepare_filename(info)
 
-        # Handle MP3 file extension
         if fmt == "mp3":
             mp3_path = Path(downloaded_path).with_suffix(".mp3")
             if mp3_path.exists():
                 downloaded_path = str(mp3_path)
 
-        # Failsafe: Find file if naming changed
         file_path = Path(downloaded_path)
         if not file_path.exists():
             candidates = list(DOWNLOAD_DIR.glob(f"{uid}*"))
             if candidates:
                 file_path = candidates[0]
             else:
-                return jsonify({"error": "Downloaded file not found"}), 500
+                return jsonify({"error": "File not found"}), 500
 
-        # Auto-delete after sending response
         @after_this_request
         def remove_file(response):
             try:
@@ -179,7 +178,6 @@ def download_video():
                 pass
             return response
 
-        # Safe filename for download
         title = info.get("title", "video")[:60]
         safe_title = "".join(c if c.isalnum() or c in " -_()" else "_" for c in title)
         filename = f"{safe_title}.{fmt}"
@@ -197,15 +195,13 @@ def download_video():
             mimetype=mimetype
         )
 
-    except yt_dlp.utils.DownloadError as e:
-        return jsonify({"error": f"Download failed: {str(e)}"}), 422
     except Exception as e:
-        return jsonify({"error": "Unexpected server error"}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-# ========================= RUN SERVER =========================
+# ========================= RUN =========================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    print(f"🚀 VidSnap API running on port {port}")
-    print(f"📍 FFmpeg available: {bool(FFMPEG_PATH)}")
+    print(f"🚀 VidSnap Full App running on port {port}")
+    print(f"📍 FFmpeg Available: {bool(FFMPEG_PATH)}")
     app.run(host="0.0.0.0", port=port)
