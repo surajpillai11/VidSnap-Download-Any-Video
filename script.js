@@ -1,5 +1,5 @@
 // ── UPDATE THIS TO YOUR RENDER URL ──
-const API_BASE = 'https://vidsnap-api.onrender.com';   // ← Change this!
+const API_BASE = 'https://vidsnap-download-any-video.onrender.com';   // ← Change this!
 
 let selectedFormat = 'mp4';
 let selectedQuality = 'best';
